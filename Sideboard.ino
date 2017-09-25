@@ -1,3 +1,4 @@
+// pin definitions
 #define MOTSTEPL 5
 #define MOTSTEPR 3
 
@@ -8,13 +9,16 @@
 #define TASTERR 7
 #define STEPDELAY 1
 
+// ini falls to low (0V) in the current version. INITHRESHOLD doesnt really matter
 #define INITHRESHOLD 800
+
+// defines the SAFETYTHRESHOLD of the currentsensor. Higher values means, that the sensor is less sensitive
 #define SAFETYTHRESHOLD_OUT 640
 #define SAFETYTHRESHOLD_IN 640
 
+// fine adjustments for length of the break ramp (in steps).
 #define BREAKRAMP_LEFT_OPEN 1740
 #define BREAKRAMP_LEFT_CLOSE 1800
-
 #define BREAKRAMP_RIGHT_OPEN 1765
 #define BREAKRAMP_RIGHT_CLOSE 1750
 
