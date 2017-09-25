@@ -1,14 +1,3 @@
-/*
- ESP8266 Blink by Simon Peter
- Blink the blue LED on the ESP-01 module
- This example code is in the public domain
- 
- The blue LED on the ESP-01 module is connected to GPIO1 
- (which is also the TXD pin; so we cannot use Serial.print() at the same time)
- 
- Note that this sketch uses LED_BUILTIN to find the pin with the internal LED
-*/
-
 #define MOTSTEPL 5
 #define MOTSTEPR 3
 
@@ -29,24 +18,32 @@
 #define BREAKRAMP_RIGHT_OPEN 1765
 #define BREAKRAMP_RIGHT_CLOSE 1750
 
+// taster states
 int tlState = 0;
 int trState = 0;
 
+// flag if sideboard is open
 bool blOpen = false;
 bool brOpen = false;
 
+// flag signals if sideboard is in drive
 bool isInDriveL = false;
 bool isInDriveR = false;
 
+// flag signals if break is active
 bool breakRightActive = false;
 bool breakLeftActive = false;
 
+// the current calculated motor velocity
 int motorVeloR = 0;
 int motorVeloL = 0;
 
+// flag if emergency stop is active
 bool emergencyStop = false;
+// flag if currentsensor is muted
 bool muteCurrentSensor = false;
 
+//not really used... it was a hack because the currentsensor was not working properly
 int counter = 0;
 
 void setup() {
@@ -97,8 +94,7 @@ void loop() {
   UpdateDrive();
 }
 
-void CheckSensor()
-{
+void CheckSensor(){
   if(!muteCurrentSensor)
   {
     int safety = analogRead(A0);
@@ -165,8 +161,7 @@ void CheckSensor()
   }
 }
 
-void UpdateDrive()
-{
+void UpdateDrive(){
   if(isInDriveR)
   {
     Step(MOTSTEPR);
@@ -228,8 +223,7 @@ void UpdateDrive()
   }
 }
 
-void Step(int pin)
-{
+void Step(int pin){
   CheckSensor();
 
   if(emergencyStop)
@@ -253,40 +247,35 @@ void Step(int pin)
   digitalWrite(pin, LOW);
 }
 
-void StartOpenLeft()
-{
+void StartOpenLeft(){
   blOpen = true;
   setDriveDircetion(MOTDIRL, HIGH);
   StartDrive(MOTSTEPL);
   SetMotorVelocity(MOTSTEPL, 100);
 }
 
-void StartCloseLeft()
-{
+void StartCloseLeft(){
   blOpen = false;
   setDriveDircetion(MOTDIRL, LOW);
   StartDrive(MOTSTEPL);
   SetMotorVelocity(MOTSTEPL, 100);
 }
 
-void StartOpenRight()
-{
+void StartOpenRight(){
   brOpen = true;
   setDriveDircetion(MOTDIRR, HIGH);
   StartDrive(MOTSTEPR);
   SetMotorVelocity(MOTSTEPR, 100);
 }
 
-void StartCloseRight()
-{ 
+void StartCloseRight(){ 
   brOpen = false;
   setDriveDircetion(MOTDIRR, LOW);
   StartDrive(MOTSTEPR);
   SetMotorVelocity(MOTSTEPR, 100);
 }
 
-void StartDrive(int pin)
-{
+void StartDrive(int pin){
   int length = 500;
   muteCurrentSensor = true;
   for(int i = 0; i < length && !emergencyStop; i++)
@@ -297,20 +286,17 @@ void StartDrive(int pin)
   muteCurrentSensor = false;
 }
 
-void BreakLeft()
-{
+void BreakLeft(){
   breakLeftActive = true;
   SetMotorVelocity(MOTSTEPL, 0);
 }
 
-void BreakRight()
-{
+void BreakRight(){
   breakRightActive = true;
   SetMotorVelocity(MOTSTEPR, 0);
 }
 
-void Stop()
-{
+void Stop(){
   SetMotorVelocity(MOTSTEPR, 0);
   SetMotorVelocity(MOTSTEPL, 0);
 
@@ -318,14 +304,11 @@ void Stop()
   breakLeftActive = false;
 }
 
-void setDriveDircetion(int dirPin, int motorDirection)
-{
+void setDriveDircetion(int dirPin, int motorDirection){
   digitalWrite(dirPin, motorDirection);
 }
 
-
-void SetMotorVelocity(int pin, int percentage)
-{
+void SetMotorVelocity(int pin, int percentage){
   if(pin == MOTSTEPL)
   {
     isInDriveL = percentage > 0;
@@ -338,19 +321,16 @@ void SetMotorVelocity(int pin, int percentage)
   }
 }
 
-int calculateMotorVelocity(int percentage)
-{
+int calculateMotorVelocity(int percentage){
   return map(100 - percentage, 0, 100, 35, 2000);
 }
 
-void ReferenceDrive()
-{
+void ReferenceDrive(){
     StartOpenRight();
     StartOpenLeft();
 } 
 
-void ToggleLeft()
-{
+void ToggleLeft(){
   if(blOpen)
   {
     StartCloseLeft();
@@ -361,8 +341,7 @@ void ToggleLeft()
   }
 }
 
-void ToggleRight()
-{
+void ToggleRight(){
   if(brOpen)
   {
     StartCloseRight();

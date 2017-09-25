@@ -1,0 +1,240 @@
+/*
+ ESP8266 Blink by Simon Peter
+ Blink the blue LED on the ESP-01 module
+ This example code is in the public domain
+ 
+ The blue LED on the ESP-01 module is connected to GPIO1 
+ (which is also the TXD pin; so we cannot use Serial.print() at the same time)
+ 
+ Note that this sketch uses LED_BUILTIN to find the pin with the internal LED
+*/
+
+#define MOTSTEPL 5
+#define MOTSTEPR 3
+
+#define MOTDIRL 4
+#define MOTDIRR 2
+
+#define TASTERL 6
+#define TASTERR 7
+#define STEPDELAY 1
+
+#define INITHRESHOLD 900
+#define SAFETYTHRESHOlD 800
+int tlState = 0;
+int trState = 0;
+
+bool blOpen = false;
+bool brOpen = false;
+
+bool isInDriveL = false;
+bool isInDriveR = false;
+
+bool breakRightActive = false;
+bool breakLeftActive = false;
+
+int motorVeloR = 0;
+int motorVeloL = 0;
+
+void setup() {
+  pinMode(MOTSTEPL,OUTPUT);
+  pinMode(MOTSTEPR,OUTPUT);
+  
+  pinMode(MOTDIRL,OUTPUT);
+  pinMode(MOTDIRR,OUTPUT);
+  delay(1000);
+   
+  pinMode(TASTERL,INPUT);
+  pinMode(TASTERR,INPUT);
+  
+  digitalWrite(TASTERL, HIGH);
+  digitalWrite(TASTERR, HIGH);
+
+  Serial.begin(9600);
+  delay(1000);
+  Serial.println("Begin");
+
+  tlState = digitalRead(TASTERL);
+  trState = digitalRead(TASTERR);
+  
+  ReferenceDrive();
+}
+
+// the loop function runs over and over again forever
+void loop() {
+  if(digitalRead(TASTERR) != trState)
+  {
+    Serial.println("TOGGLE RIGHT");
+    trState = digitalRead(TASTERR);
+    if(isInDriveR)
+    {
+      Serial.println("RIGHT is In Drive --> BREAK");
+      BreakRight();
+    }
+    else
+    {
+      ToggleRight();
+    }
+  }
+  
+  if(digitalRead(TASTERL) != tlState)
+  {
+    Serial.println("TOGGLE LEFT");
+    tlState = digitalRead(TASTERL);
+    if(isInDriveL)
+    {
+      Serial.println("LEFT is In Drive --> BREAK");
+      BreakLeft();
+    }
+    else
+    {
+      ToggleLeft();
+    }
+  }
+
+  int iniInLeft = analogRead(A1);
+  int iniOutLeft = analogRead(A2);
+  int iniInRight = analogRead(A4);
+  int iniOutRight = analogRead(A3);
+  
+  if ((!blOpen && iniInLeft < INITHRESHOLD) || (blOpen && iniOutLeft < INITHRESHOLD))
+  {
+    BreakLeft();
+  }
+
+  if ((!brOpen && iniInRight < INITHRESHOLD) || (brOpen && iniOutRight < INITHRESHOLD))
+  {
+    BreakRight();
+  }
+
+  int safety = analogRead(A0);
+  if(safety > SAFETYTHRESHOlD)
+  {
+    Serial.println("Safety");
+    Serial.println(safety);
+    BreakLeft();
+    BreakRight();
+  }
+
+  UpdateDrive();
+
+}
+
+void UpdateDrive()
+{
+  if(isInDriveR)
+  {
+    digitalWrite(MOTSTEPR, HIGH);
+    delayMicroseconds(motorVeloR);
+    digitalWrite(MOTSTEPR, LOW);
+  }
+  else if (breakRightActive)
+  {
+    for(int i = 1765 ; i > 0; i--)
+    {
+      motorVeloR = getMotorVelocity(MOTSTEPR, map(i,0,1600,0,65));
+
+      digitalWrite(MOTSTEPR, HIGH);
+      delayMicroseconds(motorVeloR);
+      digitalWrite(MOTSTEPR, LOW);
+    }
+
+    breakRightActive = false;
+  }
+}
+
+void StartOpenLeft()
+{
+  blOpen = true;
+  setDriveDircetion(MOTDIRL, HIGH);
+  motorVeloL = getMotorVelocity(MOTSTEPL, 100);
+}
+
+void StartCloseLeft()
+{
+  blOpen = false;
+  setDriveDircetion(MOTDIRL, LOW);
+  motorVeloL = getMotorVelocity(MOTSTEPL, 100);
+}
+
+void StartOpenRight()
+{
+  brOpen = true;
+  setDriveDircetion(MOTDIRR, HIGH);
+  motorVeloR = getMotorVelocity(MOTSTEPR, 100);
+}
+
+void StartCloseRight()
+{ 
+  brOpen = false;
+  setDriveDircetion(MOTDIRR, LOW);
+  motorVeloR = getMotorVelocity(MOTSTEPR, 100);
+}
+
+void BreakLeft()
+{
+  breakLeftActive = true;
+  motorVeloR = getMotorVelocity(MOTSTEPR, 0);
+}
+
+void BreakRight()
+{
+  breakRightActive = true;
+  motorVeloR = getMotorVelocity(MOTSTEPR, 0);
+}
+
+void setDriveDircetion(int dirPin, int motorDirection)
+{
+  digitalWrite(dirPin, motorDirection);
+}
+
+
+int getMotorVelocity(int pin, int percentage)
+{
+  if(pin == MOTSTEPL)
+  {
+    isInDriveL = percentage > 0;
+  }
+  
+  if(pin == MOTSTEPR)
+  {
+    isInDriveR = percentage > 0;
+  }
+  
+  return calculateMotorVelocity(percentage);
+}
+
+int calculateMotorVelocity(int percentage)
+{
+  return map(100 - percentage, 0, 100, 35, 2000);
+}
+
+void ReferenceDrive()
+{
+    StartOpenRight();
+    StartOpenLeft();
+} 
+
+void ToggleLeft()
+{
+  if(blOpen)
+  {
+    StartCloseLeft();
+  }
+  else
+  {
+    StartOpenLeft();
+  }
+}
+
+void ToggleRight()
+{
+  if(brOpen)
+  {
+    StartCloseRight();
+  }
+  else
+  {
+    StartOpenRight();
+  }
+}
